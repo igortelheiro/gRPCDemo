@@ -1,0 +1,54 @@
+﻿@page "/"
+@using Grpc.Net.Client
+@using GrpcClients
+@using Grpc.Core
+
+<PageTitle>Index</PageTitle>
+
+<label for="employeeFilter">Filter Employee</label>
+<input placeholder="Employee" @oninput=@(async e => await FilterEmployeeAsync(e.Value?.ToString())) id="employeeFilter" />
+
+@foreach (var employee in Employees)
+{
+    <p>@employee</p>
+}
+
+
+@code
+{
+    protected EmployeeRequest EmployeeRequest = new();
+    protected List<string> Employees = new();
+    
+    private EmployeeService.EmployeeServiceClient _employeeServiceClient;
+
+    protected override void OnInitialized()
+    {
+        var channel = GrpcChannel.ForAddress("https://localhost:7199");
+        var client = new EmployeeService.EmployeeServiceClient(channel);
+        _employeeServiceClient = client;
+    }
+
+
+    protected async Task FilterEmployeeAsync(string filter)
+    {
+        try
+        {
+            EmployeeRequest.Name = filter;
+            Employees = new();
+
+            var call = _employeeServiceClient.SearchEmployees();
+            await call.RequestStream.WriteAsync(EmployeeRequest);
+            await call.RequestStream.CompleteAsync();
+
+            while (await call.ResponseStream.MoveNext())
+            {
+                Employees.Add(call.ResponseStream.Current.Employee);
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error calling gRPC");
+        }
+    }
+}

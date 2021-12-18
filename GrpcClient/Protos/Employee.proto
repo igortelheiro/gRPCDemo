@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option csharp_namespace = "GrpcClients";
+
+package employee;
+
+service EmployeeService {
+  rpc SearchEmployees (stream EmployeeRequest) returns (stream EmployeeReply);
+}
+
+message EmployeeRequest {
+  string Name = 1;
+}
+
+message EmployeeReply {
+  string Employee = 1;
+}
